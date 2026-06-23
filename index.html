@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard คุณภาพอากาศ</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+      color: #f8fafc;
+    }
+    .subtitle {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      border: 1px solid #334155;
+    }
+    .card .label { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
+    .card .value { font-size: 2.2rem; font-weight: bold; }
+    .card .status { font-size: 0.85rem; margin-top: 6px; padding: 4px 10px; border-radius: 20px; display: inline-block; }
+
+    .status-great   { background: #0d9488; color: white; }
+    .status-good    { background: #16a34a; color: white; }
+    .status-medium  { background: #ca8a04; color: white; }
+    .status-bad     { background: #ea580c; color: white; }
+    .status-verybad { background: #dc2626; color: white; }
+    .status-smoke   { background: #dc2626; color: white; }
+    .status-clear   { background: #16a34a; color: white; }
+
+    .charts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .chart-box {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid #334155;
+    }
+    .chart-box h2 { font-size: 1rem; margin-bottom: 16px; color: #cbd5e1; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1e293b;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+    th {
+      background: #334155;
+      padding: 12px;
+      text-align: left;
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    td { padding: 10px 12px; font-size: 0.85rem; border-top: 1px solid #1e293b; }
+    tr:nth-child(even) td { background: #243044; }
+    .section-title {
+      font-size: 1.1rem;
+      margin: 24px 0 10px;
+      color: #cbd5e1;
+    }
+    .refresh-btn {
+      display: block;
+      margin: 0 auto 20px;
+      padding: 10px 28px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    .refresh-btn:hover { background: #2563eb; }
+    #lastUpdate { text-align: center; color: #64748b; font-size: 0.8rem; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<h1>🌬️ Dashboard คุณภาพอากาศ</h1>
+<p class="subtitle">ข้อมูลจาก PMS7003 + MQ-2 ผ่าน WeMos D1</p>
+<p id="lastUpdate">กำลังโหลดข้อมูล...</p>
+
+<button class="refresh-btn" onclick="loadData()">🔄 รีเฟรชข้อมูล</button>
+
+<!-- Cards -->
+<div class="cards">
+  <div class="card">
+    <div class="label">PM2.5 ล่าสุด</div>
+    <div class="value" id="pm25Value">-</div>
+    <div>ug/m3</div>
+  </div>
+  <div class="card">
+    <div class="label">ค่า AQI</div>
+    <div class="value" id="aqiValue">-</div>
+    <div id="aqiStatus" class="status">-</div>
+  </div>
+  <div class="card">
+    <div class="label">สถานะควัน</div>
+    <div class="value" id="smokeRaw">-</div>
+    <div id="smokeStatus" class="status">-</div>
+  </div>
+  <div class="card">
+    <div class="label">อัปเดตล่าสุด</div>
+    <div class="value" style="font-size:1.2rem" id="lastTime">-</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="charts">
+  <div class="chart-box">
+    <h2>📈 ค่า PM2.5 ย้อนหลัง</h2>
+    <canvas id="pm25Chart"></canvas>
+  </div>
+  <div class="chart-box">
+    <h2>💨 ค่าควัน MQ-2 ย้อนหลัง</h2>
+    <canvas id="smokeChart"></canvas>
+  </div>
+</div>
+
+<!-- Tables -->
+<p class="section-title">📋 ประวัติฝุ่น PM2.5</p>
+<table id="dustTable">
+  <thead><tr><th>วันที่</th><th>เวลา</th><th>PM2.5</th><th>AQI</th><th>สถานะ</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<p class="section-title">🔥 ประวัติควัน</p>
+<table id="smokeTable">
+  <thead><tr><th>วันที่</th><th>เวลา</th><th>ค่าดิบ MQ-2</th><th>สถานะ</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<script>
+// ==================== ตั้งค่าตรงนี้ ====================
+const SHEET_ID   = "ใส่ Google Sheet ID ของคุณ";
+const DUST_GID   = "0";       // GID ของ sheet "ฝุ่น"  (ดูจาก URL ของ sheet)
+const SMOKE_GID  = "ใส่ GID ของ sheet ควัน"; // ดูจาก URL ของ sheet ควัน
+// ========================================================
+
+const DUST_CSV  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${DUST_GID}`;
+const SMOKE_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SMOKE_GID}`;
+
+let pm25Chart, smokeChart;
+
+function getStatusClass(status) {
+  if (status.includes("ดีมาก"))   return "status-great";
+  if (status.includes("อากาศดี")) return "status-good";
+  if (status.includes("ปานกลาง")) return "status-medium";
+  if (status.includes("เริ่มมี")) return "status-bad";
+  if (status.includes("มีผล"))    return "status-verybad";
+  if (status.includes("เจอควัน")) return "status-smoke";
+  return "status-clear";
+}
+
+function parseCSV(text) {
+  return text.trim().split("\n").map(row =>
+    row.split(",").map(cell => cell.trim().replace(/^"|"$/g, ""))
+  );
+}
+
+async function loadData() {
+  document.getElementById("lastUpdate").textContent = "กำลังโหลด...";
+  try {
+    const [dustRes, smokeRes] = await Promise.all([
+      fetch(DUST_CSV  + "&t=" + Date.now()),
+      fetch(SMOKE_CSV + "&t=" + Date.now())
+    ]);
+    const dustText  = await dustRes.text();
+    const smokeText = await smokeRes.text();
+
+    const dustRows  = parseCSV(dustText).slice(1).filter(r => r.length >= 5);  // ตัด header
+    const smokeRows = parseCSV(smokeText).slice(1).filter(r => r.length >= 4);
+
+    // ----- Cards -----
+    if (dustRows.length > 0) {
+      const last = dustRows[dustRows.length - 1];
+      document.getElementById("pm25Value").textContent = last[2];
+      document.getElementById("aqiValue").textContent  = last[3];
+      const el = document.getElementById("aqiStatus");
+      el.textContent  = last[4];
+      el.className    = "status " + getStatusClass(last[4]);
+      document.getElementById("lastTime").textContent = last[1];
+    }
+    if (smokeRows.length > 0) {
+      const last = smokeRows[smokeRows.length - 1];
+      document.getElementById("smokeRaw").textContent = last[2];
+      const el = document.getElementById("smokeStatus");
+      el.textContent = last[3];
+      el.className   = "status " + getStatusClass(last[3]);
+    }
+
+    // ----- Charts (แสดง 20 จุดล่าสุด) -----
+    const dustSlice  = dustRows.slice(-20);
+    const smokeSlice = smokeRows.slice(-20);
+
+    const dustLabels  = dustSlice.map(r  => r[1]);
+    const dustValues  = dustSlice.map(r  => parseFloat(r[2]) || 0);
+    const smokeLabels = smokeSlice.map(r => r[1]);
+    const smokeValues = smokeSlice.map(r => parseInt(r[2])   || 0);
+
+    if (pm25Chart)  pm25Chart.destroy();
+    if (smokeChart) smokeChart.destroy();
+
+    pm25Chart = new Chart(document.getElementById("pm25Chart"), {
+      type: "line",
+      data: {
+        labels: dustLabels,
+        datasets: [{
+          label: "PM2.5 (ug/m3)",
+          data: dustValues,
+          borderColor: "#3b82f6",
+          backgroundColor: "rgba(59,130,246,0.15)",
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#cbd5e1" } } },
+        scales: {
+          x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
+          y: { ticks: { color: "#64748b" }, grid: { color: "#334155" } }
+        }
+      }
+    });
+
+    smokeChart = new Chart(document.getElementById("smokeChart"), {
+      type: "line",
+      data: {
+        labels: smokeLabels,
+        datasets: [{
+          label: "ค่า MQ-2 (raw)",
+          data: smokeValues,
+          borderColor: "#f97316",
+          backgroundColor: "rgba(249,115,22,0.15)",
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "#cbd5e1" } } },
+        scales: {
+          x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
+          y: { ticks: { color: "#64748b" }, grid: { color: "#334155" } }
+        }
+      }
+    });
+
+    // ----- Tables (แสดง 10 แถวล่าสุด เรียงใหม่ก่อน) -----
+    const dustTbody = document.querySelector("#dustTable tbody");
+    dustTbody.innerHTML = "";
+    dustRows.slice(-10).reverse().forEach(r => {
+      const cls = getStatusClass(r[4]);
+      dustTbody.innerHTML += `<tr>
+        <td>${r[0]}</td><td>${r[1]}</td>
+        <td>${r[2]} ug/m3</td><td>${r[3]}</td>
+        <td><span class="status ${cls}">${r[4]}</span></td>
+      </tr>`;
+    });
+
+    const smokeTbody = document.querySelector("#smokeTable tbody");
+    smokeTbody.innerHTML = "";
+    smokeRows.slice(-10).reverse().forEach(r => {
+      const cls = getStatusClass(r[3]);
+      smokeTbody.innerHTML += `<tr>
+        <td>${r[0]}</td><td>${r[1]}</td>
+        <td>${r[2]}</td>
+        <td><span class="status ${cls}">${r[3]}</span></td>
+      </tr>`;
+    });
+
+    document.getElementById("lastUpdate").textContent =
+      "อัปเดตล่าสุด: " + new Date().toLocaleTimeString("th-TH");
+
+  } catch (err) {
+    document.getElementById("lastUpdate").textContent = "โหลดข้อมูลไม่สำเร็จ: " + err.message;
+  }
+}
+
+loadData();
+setInterval(loadData, 60000); // รีเฟรชอัตโนมัติทุก 1 นาที
+</script>
+</body>
+</html>
