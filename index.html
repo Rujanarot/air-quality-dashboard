@@ -3,189 +3,423 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard คุณภาพอากาศ</title>
+  <title>ระบบตรวจจับฝุ่น PM2.5 และควัน</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --blue: #3b82f6;
+      --orange: #f97316;
+      --green: #16a34a;
+      --teal: #0d9488;
+      --yellow: #ca8a04;
+      --red: #dc2626;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
-      min-height: 100vh;
-      padding: 20px;
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    h1 {
-      text-align: center;
-      font-size: 1.8rem;
-      margin-bottom: 6px;
-      color: #f8fafc;
+    .header h1 { font-size: 1.2rem; color: var(--text); }
+    .header .subtitle { font-size: 0.8rem; color: var(--muted); }
+
+    /* ===== TABS ===== */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 20px 24px 0;
     }
-    .subtitle {
-      text-align: center;
-      color: #94a3b8;
+    .tab-btn {
+      padding: 10px 20px;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
       font-size: 0.9rem;
-      margin-bottom: 24px;
+      transition: all 0.2s;
     }
+    .tab-btn.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+    /* ===== MAIN CONTENT ===== */
+    .container { padding: 0 24px 24px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ===== CARDS ===== */
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 16px;
-      margin-bottom: 24px;
+      margin: 20px 0;
     }
     .card {
-      background: #1e293b;
-      border-radius: 16px;
+      background: var(--surface);
+      border-radius: 12px;
       padding: 20px;
       text-align: center;
-      border: 1px solid #334155;
+      border: 1px solid var(--border);
     }
-    .card .label { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; }
-    .card .value { font-size: 2.2rem; font-weight: bold; }
-    .card .status { font-size: 0.85rem; margin-top: 6px; padding: 4px 10px; border-radius: 20px; display: inline-block; }
+    .card .label { font-size: 0.8rem; color: var(--muted); margin-bottom: 8px; }
+    .card .value { font-size: 2rem; font-weight: 700; }
+    .card .unit { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .badge { font-size: 0.8rem; margin-top: 8px; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+    .badge-great   { background: var(--teal);   color: white; }
+    .badge-good    { background: var(--green);  color: white; }
+    .badge-medium  { background: var(--yellow); color: white; }
+    .badge-bad     { background: var(--orange); color: white; }
+    .badge-verybad { background: var(--red);    color: white; }
+    .badge-smoke   { background: var(--red);    color: white; }
+    .badge-clear   { background: var(--green);  color: white; }
 
-    .status-great   { background: #0d9488; color: white; }
-    .status-good    { background: #16a34a; color: white; }
-    .status-medium  { background: #ca8a04; color: white; }
-    .status-bad     { background: #ea580c; color: white; }
-    .status-verybad { background: #dc2626; color: white; }
-    .status-smoke   { background: #dc2626; color: white; }
-    .status-clear   { background: #16a34a; color: white; }
-
+    /* ===== CHARTS ===== */
     .charts {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      grid-template-columns: repeat(2, 1fr);
       gap: 16px;
       margin-bottom: 24px;
     }
     .chart-box {
-      background: #1e293b;
-      border-radius: 16px;
+      background: var(--surface);
+      border-radius: 12px;
       padding: 20px;
-      border: 1px solid #334155;
+      border: 1px solid var(--border);
     }
-    .chart-box h2 { font-size: 1rem; margin-bottom: 16px; color: #cbd5e1; }
+    .chart-box h2 { font-size: 0.95rem; margin-bottom: 16px; color: var(--muted); }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #1e293b;
-      border-radius: 16px;
-      overflow: hidden;
-      border: 1px solid #334155;
+    /* ===== SECTION TITLE ===== */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 24px 0 12px;
     }
-    th {
-      background: #334155;
-      padding: 12px;
-      text-align: left;
-      font-size: 0.85rem;
-      color: #94a3b8;
-    }
-    td { padding: 10px 12px; font-size: 0.85rem; border-top: 1px solid #1e293b; }
-    tr:nth-child(even) td { background: #243044; }
-    .section-title {
-      font-size: 1.1rem;
-      margin: 24px 0 10px;
-      color: #cbd5e1;
-    }
-    .refresh-btn {
-      display: block;
-      margin: 0 auto 20px;
-      padding: 10px 28px;
-      background: #3b82f6;
-      color: white;
-      border: none;
+    .section-title { font-size: 1rem; color: var(--text); font-weight: 600; }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      padding: 8px 16px;
       border-radius: 8px;
+      border: none;
       cursor: pointer;
-      font-size: 0.95rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
     }
-    .refresh-btn:hover { background: #2563eb; }
-    #lastUpdate { text-align: center; color: #64748b; font-size: 0.8rem; margin-bottom: 16px; }
+    .btn:hover { opacity: 0.85; }
+    .btn-blue   { background: var(--blue);   color: white; }
+    .btn-orange { background: var(--orange); color: white; }
+    .btn-green  { background: var(--green);  color: white; }
+    .btn-gray   { background: var(--border); color: var(--text); }
+    .btn-group  { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ===== TABLE ===== */
+    .table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); }
+    th { background: #334155; padding: 12px 14px; text-align: left; font-size: 0.82rem; color: var(--muted); white-space: nowrap; }
+    td { padding: 10px 14px; font-size: 0.85rem; border-top: 1px solid var(--border); }
+    tr:nth-child(even) td { background: #1a2744; }
+
+    /* ===== TIME PERIOD TABLE ===== */
+    .period-table th, .period-table td { text-align: center; }
+    .period-table td:first-child { text-align: left; font-weight: 600; }
+
+    /* ===== STATUS BAR ===== */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    /* ===== REPORT SECTION ===== */
+    .report-section {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .report-section h3 { font-size: 1rem; margin-bottom: 16px; }
+    .report-controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .report-controls select, .report-controls input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    /* ===== MOBILE ===== */
+    @media (max-width: 768px) {
+      .header { padding: 12px 16px; }
+      .tabs { padding: 16px 16px 0; }
+      .container { padding: 0 16px 16px; }
+      .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .charts { grid-template-columns: 1fr; }
+      .card .value { font-size: 1.6rem; }
+    }
+    @media (max-width: 480px) {
+      .cards { grid-template-columns: repeat(2, 1fr); }
+      .tab-btn { padding: 8px 14px; font-size: 0.82rem; }
+    }
+
+    /* ===== PRINT ===== */
+    @media print {
+      body { background: white; color: black; }
+      .header, .tabs, .tab-btn, .btn, .status-bar, .charts { display: none !important; }
+      .tab-content { display: block !important; }
+      table { border: 1px solid #ccc; }
+      th { background: #eee !important; color: black !important; }
+      td { border-top: 1px solid #ddd; }
+      .print-title { display: block !important; }
+      .badge { border: 1px solid #ccc; color: black !important; background: white !important; }
+    }
+    .print-title { display: none; font-size: 1.2rem; font-weight: bold; margin-bottom: 12px; }
   </style>
 </head>
 <body>
 
-<h1>🌬️ Dashboard คุณภาพอากาศ</h1>
-<p class="subtitle">ข้อมูลจาก PMS7003 + MQ-2 ผ่าน WeMos D1</p>
-<p id="lastUpdate">กำลังโหลดข้อมูล...</p>
-
-<button class="refresh-btn" onclick="loadData()">🔄 รีเฟรชข้อมูล</button>
-
-<!-- Cards -->
-<div class="cards">
-  <div class="card">
-    <div class="label">PM2.5 ล่าสุด</div>
-    <div class="value" id="pm25Value">-</div>
-    <div>ug/m3</div>
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <h1>🌬️ ระบบตรวจจับฝุ่น PM2.5 และควัน</h1>
+    <div class="subtitle">ข้อมูลจาก PMS7003 + MQ-2 ผ่าน WeMos D1</div>
   </div>
-  <div class="card">
-    <div class="label">ค่า AQI</div>
-    <div class="value" id="aqiValue">-</div>
-    <div id="aqiStatus" class="status">-</div>
-  </div>
-  <div class="card">
-    <div class="label">สถานะควัน</div>
-    <div class="value" id="smokeRaw">-</div>
-    <div id="smokeStatus" class="status">-</div>
-  </div>
-  <div class="card">
-    <div class="label">อัปเดตล่าสุด</div>
-    <div class="value" style="font-size:1.2rem" id="lastTime">-</div>
-  </div>
+  <button class="btn btn-gray" onclick="loadData()">🔄 รีเฟรช</button>
 </div>
 
-<!-- Charts -->
-<div class="charts">
-  <div class="chart-box">
-    <h2>📈 ค่า PM2.5 ย้อนหลัง</h2>
-    <canvas id="pm25Chart"></canvas>
-  </div>
-  <div class="chart-box">
-    <h2>💨 ค่าควัน MQ-2 ย้อนหลัง</h2>
-    <canvas id="smokeChart"></canvas>
-  </div>
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('report')">📋 รายงาน</button>
 </div>
 
-<!-- Tables -->
-<p class="section-title">📋 ประวัติฝุ่น PM2.5</p>
-<table id="dustTable">
-  <thead><tr><th>วันที่</th><th>เวลา</th><th>PM2.5</th><th>AQI</th><th>สถานะ</th></tr></thead>
-  <tbody></tbody>
-</table>
+<div class="container">
+  <div id="statusBar" class="status-bar">
+    <span id="lastUpdate">กำลังโหลดข้อมูล...</span>
+    <span id="dataCount"></span>
+  </div>
 
-<p class="section-title">🔥 ประวัติควัน</p>
-<table id="smokeTable">
-  <thead><tr><th>วันที่</th><th>เวลา</th><th>ค่าดิบ MQ-2</th><th>สถานะ</th></tr></thead>
-  <tbody></tbody>
-</table>
+  <!-- ===== DASHBOARD TAB ===== -->
+  <div id="tab-dashboard" class="tab-content active">
+
+    <!-- Cards -->
+    <div class="cards">
+      <div class="card">
+        <div class="label">PM2.5 ล่าสุด</div>
+        <div class="value" id="pm25Value">-</div>
+        <div class="unit">ug/m3</div>
+      </div>
+      <div class="card">
+        <div class="label">ค่า AQI</div>
+        <div class="value" id="aqiValue">-</div>
+        <div id="aqiStatus" class="badge">-</div>
+      </div>
+      <div class="card">
+        <div class="label">ค่า MQ-2</div>
+        <div class="value" id="smokeRaw">-</div>
+        <div id="smokeStatus" class="badge">-</div>
+      </div>
+      <div class="card">
+        <div class="label">อัปเดตล่าสุด</div>
+        <div class="value" style="font-size:1.1rem" id="lastTime">-</div>
+        <div class="unit" id="lastDate">-</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts">
+      <div class="chart-box">
+        <h2>📈 PM2.5 ย้อนหลัง 20 ครั้ง</h2>
+        <canvas id="pm25Chart"></canvas>
+      </div>
+      <div class="chart-box">
+        <h2>💨 MQ-2 ย้อนหลัง 20 ครั้ง</h2>
+        <canvas id="smokeChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Dust Table -->
+    <div class="section-header">
+      <div class="section-title">📋 ประวัติฝุ่น PM2.5 (10 ล่าสุด)</div>
+    </div>
+    <div class="table-wrap">
+      <table id="dustTable">
+        <thead><tr><th>วันที่</th><th>เวลา</th><th>PM2.5 (ug/m3)</th><th>AQI</th><th>สถานะ</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Smoke Table -->
+    <div class="section-header" style="margin-top:24px">
+      <div class="section-title">🔥 ประวัติควัน (10 ล่าสุด)</div>
+    </div>
+    <div class="table-wrap">
+      <table id="smokeTable">
+        <thead><tr><th>วันที่</th><th>เวลา</th><th>ค่าดิบ MQ-2</th><th>สถานะ</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== REPORT TAB ===== -->
+  <div id="tab-report" class="tab-content">
+
+    <!-- PDF Dust Report -->
+    <div class="report-section">
+      <h3>🌫️ รายงานฝุ่น PM2.5</h3>
+      <div class="report-controls">
+        <select id="dustMonth">
+          <option value="">-- เลือกเดือน --</option>
+        </select>
+        <div class="btn-group">
+          <button class="btn btn-blue" onclick="printDustReport()">🖨️ พิมพ์รายงาน PDF ฝุ่น PM2.5</button>
+        </div>
+      </div>
+      <div class="print-title" id="dustPrintTitle">รายงานฝุ่น PM2.5</div>
+      <div class="table-wrap">
+        <table id="dustReportTable" class="period-table">
+          <thead>
+            <tr>
+              <th>วัน</th>
+              <th>เช้า<br><small>06:00-12:00</small></th>
+              <th>เที่ยง<br><small>12:00-16:00</small></th>
+              <th>เย็น<br><small>16:00-19:00</small></th>
+              <th>กลางคืน<br><small>19:00-06:00</small></th>
+            </tr>
+          </thead>
+          <tbody id="dustReportBody">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">เลือกเดือนแล้วกดแสดงข้อมูล</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PDF Smoke Report -->
+    <div class="report-section">
+      <h3>🔥 รายงานควัน MQ-2</h3>
+      <div class="report-controls">
+        <select id="smokeMonth">
+          <option value="">-- เลือกเดือน --</option>
+        </select>
+        <div class="btn-group">
+          <button class="btn btn-orange" onclick="printSmokeReport()">🖨️ พิมพ์รายงาน PDF ควัน</button>
+        </div>
+      </div>
+      <div class="print-title" id="smokePrintTitle">รายงานควัน MQ-2</div>
+      <div class="table-wrap">
+        <table id="smokeReportTable" class="period-table">
+          <thead>
+            <tr>
+              <th>วัน</th>
+              <th>เช้า<br><small>06:00-12:00</small></th>
+              <th>เที่ยง<br><small>12:00-16:00</small></th>
+              <th>เย็น<br><small>16:00-19:00</small></th>
+              <th>กลางคืน<br><small>19:00-06:00</small></th>
+            </tr>
+          </thead>
+          <tbody id="smokeReportBody">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">เลือกเดือนแล้วกดแสดงข้อมูล</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <script>
 // ==================== ตั้งค่าตรงนี้ ====================
-const SHEET_ID = "1_OkZ6B6VtCkEpmn5M4lV4NCbFQ3irT7JwkM1UhPuaVU";
-const DUST_GID   = "1206197171";       // GID ของ sheet "ฝุ่น"  (ดูจาก URL ของ sheet)
-const SMOKE_GID  = "999832786"; // ดูจาก URL ของ sheet ควัน
+const SHEET_ID  = "1_OkZ6B6VtCkEpmn5M4lV4NCbFQ3irT7JwkM1UhPuaVU";
+const DUST_GID  = "1206197171";
+const SMOKE_GID = "999832786";
 // ========================================================
 
 const DUST_CSV  = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${DUST_GID}`;
 const SMOKE_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SMOKE_GID}`;
 
 let pm25Chart, smokeChart;
+let allDustRows = [], allSmokeRows = [];
 
-function getStatusClass(status) {
-  if (status.includes("ดีมาก"))   return "status-great";
-  if (status.includes("อากาศดี")) return "status-good";
-  if (status.includes("ปานกลาง")) return "status-medium";
-  if (status.includes("เริ่มมี")) return "status-bad";
-  if (status.includes("มีผล"))    return "status-verybad";
-  if (status.includes("เจอควัน")) return "status-smoke";
-  return "status-clear";
+// ===== TAB SWITCH =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'report') buildMonthOptions();
+}
+
+// ===== STATUS BADGE =====
+function getBadgeClass(status) {
+  if (!status) return 'badge-clear';
+  if (status.includes("ดีมาก"))   return "badge-great";
+  if (status.includes("อากาศดี")) return "badge-good";
+  if (status.includes("ปานกลาง")) return "badge-medium";
+  if (status.includes("เริ่มมี")) return "badge-bad";
+  if (status.includes("มีผล"))    return "badge-verybad";
+  if (status.includes("เจอควัน") || status.includes("ตรวจเจอ")) return "badge-smoke";
+  return "badge-clear";
 }
 
 function parseCSV(text) {
-  return text.trim().split("\n").map(row =>
-    row.split(",").map(cell => cell.trim().replace(/^"|"$/g, ""))
-  );
+  return text.trim().split("\n").map(row => {
+    const result = [];
+    let cur = '', inQuote = false;
+    for (let c of row) {
+      if (c === '"') { inQuote = !inQuote; }
+      else if (c === ',' && !inQuote) { result.push(cur.trim()); cur = ''; }
+      else cur += c;
+    }
+    result.push(cur.trim());
+    return result;
+  });
 }
 
+// ===== GET TIME PERIOD =====
+function getTimePeriod(timeStr) {
+  if (!timeStr) return 'กลางคืน';
+  const h = parseInt(timeStr.split(':')[0]);
+  if (h >= 6  && h < 12) return 'เช้า';
+  if (h >= 12 && h < 16) return 'เที่ยง';
+  if (h >= 16 && h < 19) return 'เย็น';
+  return 'กลางคืน';
+}
+
+// ===== LOAD DATA =====
 async function loadData() {
   document.getElementById("lastUpdate").textContent = "กำลังโหลด...";
   try {
@@ -196,120 +430,228 @@ async function loadData() {
     const dustText  = await dustRes.text();
     const smokeText = await smokeRes.text();
 
-    const dustRows  = parseCSV(dustText).slice(1).filter(r => r.length >= 5);  // ตัด header
-    const smokeRows = parseCSV(smokeText).slice(1).filter(r => r.length >= 4);
+    allDustRows  = parseCSV(dustText).slice(1).filter(r => r.length >= 5 && r[0]);
+    allSmokeRows = parseCSV(smokeText).slice(1).filter(r => r.length >= 4 && r[0]);
 
-    // ----- Cards -----
-    if (dustRows.length > 0) {
-      const last = dustRows[dustRows.length - 1];
-      document.getElementById("pm25Value").textContent = last[2];
-      document.getElementById("aqiValue").textContent  = last[3];
-      const el = document.getElementById("aqiStatus");
-      el.textContent  = last[4];
-      el.className    = "status " + getStatusClass(last[4]);
-      document.getElementById("lastTime").textContent = last[1];
-    }
-    if (smokeRows.length > 0) {
-      const last = smokeRows[smokeRows.length - 1];
-      document.getElementById("smokeRaw").textContent = last[2];
-      const el = document.getElementById("smokeStatus");
-      el.textContent = last[3];
-      el.className   = "status " + getStatusClass(last[3]);
-    }
-
-    // ----- Charts (แสดง 20 จุดล่าสุด) -----
-    const dustSlice  = dustRows.slice(-20);
-    const smokeSlice = smokeRows.slice(-20);
-
-    const dustLabels  = dustSlice.map(r  => r[1]);
-    const dustValues  = dustSlice.map(r  => parseFloat(r[2]) || 0);
-    const smokeLabels = smokeSlice.map(r => r[1]);
-    const smokeValues = smokeSlice.map(r => parseInt(r[2])   || 0);
-
-    if (pm25Chart)  pm25Chart.destroy();
-    if (smokeChart) smokeChart.destroy();
-
-    pm25Chart = new Chart(document.getElementById("pm25Chart"), {
-      type: "line",
-      data: {
-        labels: dustLabels,
-        datasets: [{
-          label: "PM2.5 (ug/m3)",
-          data: dustValues,
-          borderColor: "#3b82f6",
-          backgroundColor: "rgba(59,130,246,0.15)",
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { labels: { color: "#cbd5e1" } } },
-        scales: {
-          x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
-          y: { ticks: { color: "#64748b" }, grid: { color: "#334155" } }
-        }
-      }
-    });
-
-    smokeChart = new Chart(document.getElementById("smokeChart"), {
-      type: "line",
-      data: {
-        labels: smokeLabels,
-        datasets: [{
-          label: "ค่า MQ-2 (raw)",
-          data: smokeValues,
-          borderColor: "#f97316",
-          backgroundColor: "rgba(249,115,22,0.15)",
-          fill: true,
-          tension: 0.3,
-          pointRadius: 3
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { labels: { color: "#cbd5e1" } } },
-        scales: {
-          x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
-          y: { ticks: { color: "#64748b" }, grid: { color: "#334155" } }
-        }
-      }
-    });
-
-    // ----- Tables (แสดง 10 แถวล่าสุด เรียงใหม่ก่อน) -----
-    const dustTbody = document.querySelector("#dustTable tbody");
-    dustTbody.innerHTML = "";
-    dustRows.slice(-10).reverse().forEach(r => {
-      const cls = getStatusClass(r[4]);
-      dustTbody.innerHTML += `<tr>
-        <td>${r[0]}</td><td>${r[1]}</td>
-        <td>${r[2]} ug/m3</td><td>${r[3]}</td>
-        <td><span class="status ${cls}">${r[4]}</span></td>
-      </tr>`;
-    });
-
-    const smokeTbody = document.querySelector("#smokeTable tbody");
-    smokeTbody.innerHTML = "";
-    smokeRows.slice(-10).reverse().forEach(r => {
-      const cls = getStatusClass(r[3]);
-      smokeTbody.innerHTML += `<tr>
-        <td>${r[0]}</td><td>${r[1]}</td>
-        <td>${r[2]}</td>
-        <td><span class="status ${cls}">${r[3]}</span></td>
-      </tr>`;
-    });
-
-    document.getElementById("lastUpdate").textContent =
-      "อัปเดตล่าสุด: " + new Date().toLocaleTimeString("th-TH");
-
+    updateDashboard();
+    document.getElementById("lastUpdate").textContent = "อัปเดตล่าสุด: " + new Date().toLocaleTimeString("th-TH");
+    document.getElementById("dataCount").textContent = `ฝุ่น ${allDustRows.length} รายการ | ควัน ${allSmokeRows.length} รายการ`;
   } catch (err) {
-    document.getElementById("lastUpdate").textContent = "โหลดข้อมูลไม่สำเร็จ: " + err.message;
+    document.getElementById("lastUpdate").textContent = "โหลดไม่สำเร็จ: " + err.message;
   }
 }
 
+function updateDashboard() {
+  // Cards
+  if (allDustRows.length > 0) {
+    const last = allDustRows[allDustRows.length - 1];
+    document.getElementById("pm25Value").textContent = last[2];
+    document.getElementById("aqiValue").textContent  = last[3];
+    const el = document.getElementById("aqiStatus");
+    el.textContent = last[4]; el.className = "badge " + getBadgeClass(last[4]);
+    document.getElementById("lastTime").textContent = last[1];
+    document.getElementById("lastDate").textContent = last[0];
+  }
+  if (allSmokeRows.length > 0) {
+    const last = allSmokeRows[allSmokeRows.length - 1];
+    document.getElementById("smokeRaw").textContent = last[2];
+    const el = document.getElementById("smokeStatus");
+    el.textContent = last[3]; el.className = "badge " + getBadgeClass(last[3]);
+  }
+
+  // Charts
+  const dustSlice  = allDustRows.slice(-20);
+  const smokeSlice = allSmokeRows.slice(-20);
+  if (pm25Chart)  pm25Chart.destroy();
+  if (smokeChart) smokeChart.destroy();
+
+  pm25Chart = new Chart(document.getElementById("pm25Chart"), {
+    type: "line",
+    data: { labels: dustSlice.map(r => r[1]),
+      datasets: [{ label: "PM2.5 (ug/m3)", data: dustSlice.map(r => parseFloat(r[2])||0),
+        borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.15)", fill: true, tension: 0.3, pointRadius: 3 }] },
+    options: { responsive: true,
+      plugins: { legend: { labels: { color: "#cbd5e1" } } },
+      scales: { x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
+                y: { ticks: { color: "#64748b" }, grid: { color: "#334155" } } } }
+  });
+
+  smokeChart = new Chart(document.getElementById("smokeChart"), {
+    type: "line",
+    data: { labels: smokeSlice.map(r => r[1]),
+      datasets: [{ label: "MQ-2 (raw)", data: smokeSlice.map(r => parseInt(r[2])||0),
+        borderColor: "#f97316", backgroundColor: "rgba(249,115,22,0.15)", fill: true, tension: 0.3, pointRadius: 3 }] },
+    options: { responsive: true,
+      plugins: { legend: { labels: { color: "#cbd5e1" } } },
+      scales: { x: { ticks: { color: "#64748b" }, grid: { color: "#1e293b" } },
+                y: { ticks: { color: "#64748b" }, grid: { color: "#334155" } } } }
+  });
+
+  // Tables
+  const dustTbody = document.querySelector("#dustTable tbody");
+  dustTbody.innerHTML = "";
+  allDustRows.slice(-10).reverse().forEach(r => {
+    const cls = getBadgeClass(r[4]);
+    dustTbody.innerHTML += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]} ug/m3</td><td>${r[3]}</td>
+      <td><span class="badge ${cls}">${r[4]}</span></td></tr>`;
+  });
+
+  const smokeTbody = document.querySelector("#smokeTable tbody");
+  smokeTbody.innerHTML = "";
+  allSmokeRows.slice(-10).reverse().forEach(r => {
+    const cls = getBadgeClass(r[3]);
+    smokeTbody.innerHTML += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td>
+      <td><span class="badge ${cls}">${r[3]}</span></td></tr>`;
+  });
+}
+
+// ===== MONTH OPTIONS =====
+function buildMonthOptions() {
+  const dustMonths  = [...new Set(allDustRows.map(r  => r[0] ? r[0].substring(3) : ''))].filter(Boolean).sort();
+  const smokeMonths = [...new Set(allSmokeRows.map(r => r[0] ? r[0].substring(3) : ''))].filter(Boolean).sort();
+
+  const dustSel  = document.getElementById('dustMonth');
+  const smokeSel = document.getElementById('smokeMonth');
+  const currentDust  = dustSel.value;
+  const currentSmoke = smokeSel.value;
+
+  dustSel.innerHTML  = '<option value="">-- เลือกเดือน --</option>';
+  smokeSel.innerHTML = '<option value="">-- เลือกเดือน --</option>';
+
+  dustMonths.forEach(m  => dustSel.innerHTML  += `<option value="${m}" ${m===currentDust?'selected':''}>${m}</option>`);
+  smokeMonths.forEach(m => smokeSel.innerHTML += `<option value="${m}" ${m===currentSmoke?'selected':''}>${m}</option>`);
+
+  dustSel.onchange  = buildDustPeriodTable;
+  smokeSel.onchange = buildSmokePeriodTable;
+
+  if (currentDust)  buildDustPeriodTable();
+  if (currentSmoke) buildSmokePeriodTable();
+}
+
+// ===== BUILD PERIOD TABLE (ฝุ่น) =====
+function buildDustPeriodTable() {
+  const month = document.getElementById('dustMonth').value;
+  if (!month) return;
+  document.getElementById('dustPrintTitle').textContent = `รายงานฝุ่น PM2.5 เดือน ${month}`;
+
+  const rows = allDustRows.filter(r => r[0] && r[0].substring(3) === month);
+  const byDay = {};
+  rows.forEach(r => {
+    const day = r[0];
+    const period = getTimePeriod(r[1]);
+    if (!byDay[day]) byDay[day] = { เช้า:[], เที่ยง:[], เย็น:[], กลางคืน:[] };
+    byDay[day][period].push(parseFloat(r[2])||0);
+  });
+
+  const tbody = document.getElementById('dustReportBody');
+  tbody.innerHTML = '';
+  if (Object.keys(byDay).length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px">ไม่มีข้อมูล</td></tr>';
+    return;
+  }
+
+  Object.keys(byDay).sort().forEach(day => {
+    const d = byDay[day];
+    const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : '-';
+    tbody.innerHTML += `<tr>
+      <td>${day}</td>
+      <td>${avg(d.เช้า)} ${d.เช้า.length?'ug/m3':''}</td>
+      <td>${avg(d.เที่ยง)} ${d.เที่ยง.length?'ug/m3':''}</td>
+      <td>${avg(d.เย็น)} ${d.เย็น.length?'ug/m3':''}</td>
+      <td>${avg(d.กลางคืน)} ${d.กลางคืน.length?'ug/m3':''}</td>
+    </tr>`;
+  });
+}
+
+// ===== BUILD PERIOD TABLE (ควัน) =====
+function buildSmokePeriodTable() {
+  const month = document.getElementById('smokeMonth').value;
+  if (!month) return;
+  document.getElementById('smokePrintTitle').textContent = `รายงานควัน MQ-2 เดือน ${month}`;
+
+  const rows = allSmokeRows.filter(r => r[0] && r[0].substring(3) === month);
+  const byDay = {};
+  rows.forEach(r => {
+    const day = r[0];
+    const period = getTimePeriod(r[1]);
+    if (!byDay[day]) byDay[day] = { เช้า:[], เที่ยง:[], เย็น:[], กลางคืน:[] };
+    byDay[day][period].push(r[3]);
+  });
+
+  const tbody = document.getElementById('smokeReportBody');
+  tbody.innerHTML = '';
+  if (Object.keys(byDay).length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px">ไม่มีข้อมูล</td></tr>';
+    return;
+  }
+
+  Object.keys(byDay).sort().forEach(day => {
+    const d = byDay[day];
+    const summary = arr => {
+      if (!arr.length) return '-';
+      const hasSmoke = arr.some(s => s.includes('เจอ') || s.includes('ตรวจ'));
+      return hasSmoke ? '<span class="badge badge-smoke">ตรวจเจอควัน</span>' : '<span class="badge badge-clear">ไม่พบควัน</span>';
+    };
+    tbody.innerHTML += `<tr>
+      <td>${day}</td>
+      <td>${summary(d.เช้า)}</td>
+      <td>${summary(d.เที่ยง)}</td>
+      <td>${summary(d.เย็น)}</td>
+      <td>${summary(d.กลางคืน)}</td>
+    </tr>`;
+  });
+}
+
+// ===== PRINT PDF =====
+function printDustReport() {
+  const month = document.getElementById('dustMonth').value;
+  if (!month) { alert('กรุณาเลือกเดือนก่อน'); return; }
+  buildDustPeriodTable();
+  const title = `รายงานฝุ่น PM2.5 เดือน ${month}`;
+  printSection('dustReportTable', title);
+}
+
+function printSmokeReport() {
+  const month = document.getElementById('smokeMonth').value;
+  if (!month) { alert('กรุณาเลือกเดือนก่อน'); return; }
+  buildSmokePeriodTable();
+  const title = `รายงานควัน MQ-2 เดือน ${month}`;
+  printSection('smokeReportTable', title);
+}
+
+function printSection(tableId, title) {
+  const table = document.getElementById(tableId).outerHTML;
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html><html lang="th"><head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>
+      body { font-family: 'Segoe UI', sans-serif; padding: 24px; color: #000; }
+      h2 { margin-bottom: 8px; font-size: 1.2rem; }
+      p { color: #666; font-size: 0.85rem; margin-bottom: 16px; }
+      table { width: 100%; border-collapse: collapse; }
+      th { background: #eee; padding: 10px; text-align: center; border: 1px solid #ccc; font-size: 0.85rem; }
+      td { padding: 8px 10px; border: 1px solid #ddd; text-align: center; font-size: 0.85rem; }
+      td:first-child { text-align: left; font-weight: 600; }
+      .badge { padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; }
+      .badge-smoke { background: #fee2e2; color: #991b1b; }
+      .badge-clear { background: #dcfce7; color: #166534; }
+      @media print { body { padding: 12px; } }
+    </style>
+    </head><body>
+    <h2>${title}</h2>
+    <p>พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')} | ข้อมูลจากระบบตรวจวัดอากาศ WeMos D1</p>
+    ${table}
+    <script>window.onload = () => { window.print(); }<\/script>
+    </body></html>
+  `);
+  win.document.close();
+}
+
+// ===== INIT =====
 loadData();
-setInterval(loadData, 60000); // รีเฟรชอัตโนมัติทุก 1 นาที
+setInterval(loadData, 60000);
 </script>
 </body>
 </html>
