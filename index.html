@@ -505,6 +505,19 @@ function updateDashboard() {
   });
 }
 
+// ===== แปลงเดือนเป็นภาษาไทย =====
+const THAI_MONTHS = {
+  '01':'มกราคม','02':'กุมภาพันธ์','03':'มีนาคม',
+  '04':'เมษายน','05':'พฤษภาคม','06':'มิถุนายน',
+  '07':'กรกฎาคม','08':'สิงหาคม','09':'กันยายน',
+  '10':'ตุลาคม','11':'พฤศจิกายน','12':'ธันวาคม'
+};
+function toThaiMonth(mmyyyy) {
+  if (!mmyyyy) return mmyyyy;
+  const [mm, yyyy] = mmyyyy.split('/');
+  return (THAI_MONTHS[mm] || mm) + ' ' + yyyy;
+}
+
 // ===== MONTH OPTIONS =====
 function buildMonthOptions() {
   const dustMonths  = [...new Set(allDustRows.map(r  => r[0] ? r[0].substring(3) : ''))].filter(Boolean).sort();
@@ -518,8 +531,8 @@ function buildMonthOptions() {
   dustSel.innerHTML  = '<option value="">-- เลือกเดือน --</option>';
   smokeSel.innerHTML = '<option value="">-- เลือกเดือน --</option>';
 
-  dustMonths.forEach(m  => dustSel.innerHTML  += `<option value="${m}" ${m===currentDust?'selected':''}>${m}</option>`);
-  smokeMonths.forEach(m => smokeSel.innerHTML += `<option value="${m}" ${m===currentSmoke?'selected':''}>${m}</option>`);
+  dustMonths.forEach(m  => dustSel.innerHTML  += `<option value="${m}" ${m===currentDust?'selected':''}>${toThaiMonth(m)}</option>`);
+  smokeMonths.forEach(m => smokeSel.innerHTML += `<option value="${m}" ${m===currentSmoke?'selected':''}>${toThaiMonth(m)}</option>`);
 
   dustSel.onchange  = buildDustPeriodTable;
   smokeSel.onchange = buildSmokePeriodTable;
@@ -532,7 +545,7 @@ function buildMonthOptions() {
 function buildDustPeriodTable() {
   const month = document.getElementById('dustMonth').value;
   if (!month) return;
-  document.getElementById('dustPrintTitle').textContent = `รายงานฝุ่น PM2.5 เดือน ${month}`;
+  document.getElementById('dustPrintTitle').textContent = `รายงานฝุ่น PM2.5 เดือน ${toThaiMonth(month)}`;
 
   const rows = allDustRows.filter(r => r[0] && r[0].substring(3) === month);
   const byDay = {};
@@ -567,7 +580,7 @@ function buildDustPeriodTable() {
 function buildSmokePeriodTable() {
   const month = document.getElementById('smokeMonth').value;
   if (!month) return;
-  document.getElementById('smokePrintTitle').textContent = `รายงานควัน MQ-2 เดือน ${month}`;
+  document.getElementById('smokePrintTitle').textContent = `รายงานควัน MQ-2 เดือน ${toThaiMonth(month)}`;
 
   const rows = allSmokeRows.filter(r => r[0] && r[0].substring(3) === month);
   const byDay = {};
@@ -607,7 +620,7 @@ function printDustReport() {
   const month = document.getElementById('dustMonth').value;
   if (!month) { alert('กรุณาเลือกเดือนก่อน'); return; }
   buildDustPeriodTable();
-  const title = `รายงานฝุ่น PM2.5 เดือน ${month}`;
+  const title = `รายงานฝุ่น PM2.5 เดือน ${toThaiMonth(month)}`;
   printSection('dustReportTable', title);
 }
 
@@ -615,7 +628,7 @@ function printSmokeReport() {
   const month = document.getElementById('smokeMonth').value;
   if (!month) { alert('กรุณาเลือกเดือนก่อน'); return; }
   buildSmokePeriodTable();
-  const title = `รายงานควัน MQ-2 เดือน ${month}`;
+  const title = `รายงานควัน MQ-2 เดือน ${toThaiMonth(month)}`;
   printSection('smokeReportTable', title);
 }
 
