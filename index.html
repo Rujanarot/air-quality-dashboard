@@ -230,7 +230,6 @@
 <div class="container">
   <div id="statusBar" class="status-bar">
     <span id="lastUpdate">กำลังโหลดข้อมูล...</span>
-    <span id="dataCount"></span>
   </div>
 
   <!-- ===== DASHBOARD TAB ===== -->
@@ -435,7 +434,6 @@ async function loadData() {
 
     updateDashboard();
     document.getElementById("lastUpdate").textContent = "อัปเดตล่าสุด: " + new Date().toLocaleTimeString("th-TH");
-    document.getElementById("dataCount").textContent = `ฝุ่น ${allDustRows.length} รายการ | ควัน ${allSmokeRows.length} รายการ`;
   } catch (err) {
     document.getElementById("lastUpdate").textContent = "โหลดไม่สำเร็จ: " + err.message;
   }
@@ -650,13 +648,34 @@ function printSection(tableId, title) {
       .badge { padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; }
       .badge-smoke { background: #fee2e2; color: #991b1b; }
       .badge-clear { background: #dcfce7; color: #166534; }
-      @media print { body { padding: 12px; } }
+      .no-print { margin-bottom: 16px; display: flex; gap: 8px; }
+      button {
+        padding: 8px 20px; border: none; border-radius: 6px;
+        cursor: pointer; font-size: 0.9rem; font-weight: 600;
+      }
+      .btn-print { background: #3b82f6; color: white; }
+      .btn-pdf   { background: #dc2626; color: white; }
+      @media print { .no-print { display: none !important; } }
     </style>
     </head><body>
+    <div class="no-print">
+      <button class="btn-print" onclick="window.print()">🖨️ พิมพ์</button>
+      <button class="btn-pdf" onclick="downloadPDF()">⬇️ ดาวน์โหลด PDF</button>
+    </div>
     <h2>${title}</h2>
     <p>พิมพ์เมื่อ: ${new Date().toLocaleString('th-TH')} | ข้อมูลจากระบบตรวจวัดอากาศ WeMos D1</p>
     ${table}
-    <script>window.onload = () => { window.print(); }<\/script>
+    <script>
+      function downloadPDF() {
+        const filename = '${title.replace(/ /g, '_')}.pdf';
+        document.title = filename;
+        window.print();
+      }
+      window.onload = () => {
+        // ตั้งค่า print เป็น PDF อัตโนมัติ
+        window.onafterprint = () => window.close();
+      };
+    <\/script>
     </body></html>
   `);
   win.document.close();
