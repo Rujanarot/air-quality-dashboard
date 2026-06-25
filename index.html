@@ -191,6 +191,10 @@
       .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
       .charts { grid-template-columns: 1fr; }
       .card .value { font-size: 1.6rem; }
+      .report-controls { flex-direction: column; align-items: stretch; }
+      .report-controls select { width: 100%; font-size: 1rem; padding: 12px; }
+      .btn-group { width: 100%; }
+      .btn-group .btn { width: 100%; padding: 12px; font-size: 0.95rem; text-align: center; }
     }
     @media (max-width: 480px) {
       .cards { grid-template-columns: repeat(2, 1fr); }
@@ -612,13 +616,12 @@ function buildSmokePeriodTable() {
   });
 }
 
-// ===== DOWNLOAD PDF =====
 function downloadDustPDF() {
   const month = document.getElementById('dustMonth').value;
   if (!month) { alert('กรุณาเลือกเดือนก่อน'); return; }
   buildDustPeriodTable();
   const title = `รายงานฝุ่น PM2.5 เดือน ${toThaiMonth(month)}`;
-  downloadPDF('dustReportSection', title, `รายงานฝุ่น_PM2.5_${month.replace('/','-')}.pdf`);
+  generatePDF('dustReportTable', title, `รายงานฝุ่น_PM2.5_${month.replace('/','-')}.pdf`);
 }
 
 function downloadSmokePDF() {
@@ -626,55 +629,61 @@ function downloadSmokePDF() {
   if (!month) { alert('กรุณาเลือกเดือนก่อน'); return; }
   buildSmokePeriodTable();
   const title = `รายงานควัน MQ-2 เดือน ${toThaiMonth(month)}`;
-  downloadPDF('smokeReportSection', title, `รายงานควัน_MQ2_${month.replace('/','-')}.pdf`);
+  generatePDF('smokeReportTable', title, `รายงานควัน_MQ2_${month.replace('/','-')}.pdf`);
 }
 
-function downloadPDF(sectionId, title, filename) {
-  // สร้าง element ชั่วคราวสำหรับ PDF
+function generatePDF(tableId, title, filename) {
+  // โคลน table แล้วล้าง class มืดออกทั้งหมด
+  const origTable = document.getElementById(tableId);
+  const clone = origTable.cloneNode(true);
+
+  // ล้าง class และ style ที่ทำให้มืด
+  clone.removeAttribute('class');
+  clone.querySelectorAll('tr, td, th').forEach(el => {
+    el.style.background = '';
+    el.style.color = '';
+  });
+
   const el = document.createElement('div');
-  el.style.cssText = 'padding:24px;font-family:Sarabun,Segoe UI,sans-serif;color:#000;background:white;';
+  el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1100px;background:white;padding:32px;font-family:Segoe UI,Tahoma,sans-serif;color:#1a1a1a;';
   el.innerHTML = `
-    <h2 style="margin-bottom:8px;font-size:18px;">${title}</h2>
-    <p style="color:#666;font-size:13px;margin-bottom:16px;">
-      ออกรายงานเมื่อ: ${new Date().toLocaleString('th-TH')} | ระบบตรวจวัดอากาศ WeMos D1
-    </p>
-    ${document.getElementById(sectionId).querySelector('table').outerHTML}
+    <div style="border-bottom:3px solid #1e40af;padding-bottom:16px;margin-bottom:20px;">
+      <div style="font-size:22px;font-weight:700;color:#1e3a8a;margin-bottom:6px;">📋 ${title}</div>
+      <div style="font-size:13px;color:#6b7280;">ออกรายงานเมื่อ: ${new Date().toLocaleString('th-TH')} &nbsp;|&nbsp; ระบบตรวจวัดคุณภาพอากาศ WeMos D1</div>
+    </div>
   `;
+  el.appendChild(clone);
+  el.innerHTML += `<div style="margin-top:24px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#9ca3af;text-align:right;">ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)</div>`;
 
-  // style ตาราง
-  el.querySelectorAll('th').forEach(th => {
-    th.style.cssText = 'background:#e5e7eb;padding:10px;text-align:center;border:1px solid #ccc;font-size:13px;';
-  });
-  el.querySelectorAll('td').forEach(td => {
-    td.style.cssText = 'padding:8px 10px;border:1px solid #ddd;text-align:center;font-size:13px;';
-  });
-  el.querySelectorAll('td:first-child').forEach(td => {
-    td.style.fontWeight = '600';
-    td.style.textAlign  = 'left';
-  });
-  el.querySelectorAll('.badge').forEach(b => {
-    b.style.cssText = 'padding:2px 8px;border-radius:10px;font-size:12px;display:inline-block;';
-    if (b.classList.contains('badge-smoke')) {
-      b.style.background = '#fee2e2'; b.style.color = '#991b1b';
-    } else {
-      b.style.background = '#dcfce7'; b.style.color = '#166534';
-    }
-  });
-
+  // style ตาราง inline
+  const style = document.createElement('style');
+  style.textContent = `
+    table { width:100%; border-collapse:collapse; }
+    thead tr { background:#1e40af !important; }
+    thead th { padding:12px 14px; text-align:center; color:#fff !important; font-size:13px; font-weight:600; border:1px solid #1e3a8a; background:#1e40af !important; }
+    thead th:first-child { text-align:left; }
+    tbody tr:nth-child(odd)  td { background:#f8fafc !important; }
+    tbody tr:nth-child(even) td { background:#eff6ff !important; }
+    td { padding:10px 14px; text-align:center; font-size:13px; border:1px solid #cbd5e1; color:#1a1a1a !important; background:white; }
+    td:first-child { text-align:left; font-weight:600; color:#1e3a8a !important; }
+    .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:600; }
+    .badge-smoke { background:#fee2e2 !important; color:#b91c1c !important; border:1px solid #fca5a5; }
+    .badge-clear { background:#dcfce7 !important; color:#15803d !important; border:1px solid #86efac; }
+  `;
+  el.insertBefore(style, el.firstChild);
   document.body.appendChild(el);
 
   html2pdf().set({
-    margin:       [10, 10, 10, 10],
-    filename:     filename,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true },
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    margin:      [8, 8, 8, 8],
+    filename:    filename,
+    image:       { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+    jsPDF:       { unit: 'mm', format: 'a4', orientation: 'landscape' }
   }).from(el).save().then(() => {
     document.body.removeChild(el);
   });
 }
 
-// ฟังก์ชันเดิม (ไม่ใช้แล้ว แต่เก็บไว้กันพัง)
 function printDustReport()  { downloadDustPDF();  }
 function printSmokeReport() { downloadSmokePDF(); }
 function printSection() {}
