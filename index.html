@@ -465,7 +465,7 @@ function buildSmokePeriodTable() {
   });
 }
 
-// ===== PRINT TO PDF — เปิด popup เฉพาะ content ที่ต้องการ (รองรับมือถือ) =====
+// ===== PRINT TO PDF — ใช้ iframe ซ่อน (รองรับมือถือ Android) =====
 function printReport(type) {
   const isD  = type === 'dust';
   const month = document.getElementById(isD ? 'dustMonth' : 'smokeMonth').value;
@@ -473,42 +473,53 @@ function printReport(type) {
 
   if (isD) buildDustPeriodTable(); else buildSmokePeriodTable();
 
-  const label    = isD ? 'รายงานฝุ่น PM2.5' : 'รายงานควัน MQ-2';
-  const title    = label + ' เดือน ' + toThaiMonth(month);
-  const sub      = 'ออกรายงานเมื่อ: ' + new Date().toLocaleString('th-TH') + '  |  ระบบตรวจวัดคุณภาพอากาศ WeMos D1';
-  const foot     = 'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
+  const label     = isD ? 'รายงานฝุ่น PM2.5' : 'รายงานควัน MQ-2';
+  const title     = label + ' เดือน ' + toThaiMonth(month);
+  const sub       = 'ออกรายงานเมื่อ: ' + new Date().toLocaleString('th-TH') + '  |  ระบบตรวจวัดคุณภาพอากาศ WeMos D1';
+  const foot      = 'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
   const tableHTML = document.getElementById(isD ? 'dustReportTable' : 'smokeReportTable').outerHTML;
 
-  const html = '<!DOCTYPE html>' +
-    '<html lang="th"><head>' +
+  // ลบ iframe เก่าถ้ามี
+  const old = document.getElementById('printFrame');
+  if (old) old.remove();
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'printFrame';
+  iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(
+    '<!DOCTYPE html><html lang="th"><head>' +
     '<meta charset="UTF-8">' +
-    '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-    '<title>' + title + '</title>' +
     '<style>' +
-    '@page { size: A4 portrait; margin: 14mm 14mm 12mm; }' +
-    '* { margin:0; padding:0; box-sizing:border-box; }' +
-    'body { font-family: Segoe UI, Tahoma, sans-serif; background:white; color:#000; font-size:11pt; }' +
-    '.hd { border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:14px; }' +
-    '.hd h2 { font-size:15pt; font-weight:bold; margin-bottom:4px; }' +
-    '.hd p  { font-size:8.5pt; color:#444; }' +
-    'table  { width:100%; border-collapse:collapse; }' +
-    'th { background:#000; color:#fff; padding:8px 10px; font-size:10pt; text-align:center; border:1px solid #000; }' +
-    'td { padding:7px 10px; font-size:9.5pt; color:#000; border:1px solid #888; text-align:center; background:white; }' +
-    'td:first-child { text-align:left; font-weight:bold; }' +
-    'tr:nth-child(even) td { background:#f0f0f0; }' +
-    '.ft { margin-top:10px; font-size:8pt; color:#555; text-align:right; }' +
-    '@media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }' +
+    '@page{size:A4 portrait;margin:14mm 14mm 12mm}' +
+    '*{margin:0;padding:0;box-sizing:border-box}' +
+    'body{font-family:Tahoma,sans-serif;background:white;color:#000;font-size:10pt}' +
+    '.hd{border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:14px}' +
+    '.hd h2{font-size:14pt;font-weight:bold;margin-bottom:4px}' +
+    '.hd p{font-size:8pt;color:#444}' +
+    'table{width:100%;border-collapse:collapse}' +
+    'th{background:#000!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:7px 8px;font-size:9pt;text-align:center;border:1px solid #000}' +
+    'td{padding:6px 8px;font-size:9pt;color:#000;border:1px solid #999;text-align:center;background:white}' +
+    'td:first-child{text-align:left;font-weight:bold}' +
+    'tr:nth-child(even) td{background:#f2f2f2!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    '.ft{margin-top:10px;font-size:7.5pt;color:#555;text-align:right}' +
     '</style></head><body>' +
     '<div class="hd"><h2>' + title + '</h2><p>' + sub + '</p></div>' +
     tableHTML +
     '<div class="ft">' + foot + '</div>' +
-    '<script>window.onload=function(){ window.print(); window.onafterprint=function(){ window.close(); }; };<\/script>' +
-    '</body></html>';
+    '</body></html>'
+  );
+  doc.close();
 
-  const w = window.open('', '_blank', 'width=800,height=600');
-  if (!w) { alert('กรุณาอนุญาต Pop-up สำหรับเว็บนี้ก่อนครับ'); return; }
-  w.document.write(html);
-  w.document.close();
+  iframe.onload = function() {
+    setTimeout(function() {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }, 300);
+  };
 }
 
 loadData();
