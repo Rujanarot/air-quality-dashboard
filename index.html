@@ -93,12 +93,17 @@
       @page { size: A4 portrait; margin: 14mm; }
       body { background: white !important; color: #000 !important; font-family: Tahoma, sans-serif; }
       /* ซ่อนทุกอย่าง */
-      .header, .tabs, .status-bar, .charts, .section-header,
-      #tab-dashboard, .btn, .report-controls,
-      #dustTable, #smokeTable, .tab-content { display: none !important; }
-      /* แสดงเฉพาะ section ที่เลือก */
+      * { display: none !important; }
+      /* แสดงเฉพาะสิ่งที่จำเป็น */
+      html, body, .container, #tab-report,
+      .report-section.printing,
+      .report-section.printing *,
+      .print-header, .print-header *,
+      .print-footer,
+      .table-wrap, .table-wrap *,
+      table, thead, tbody, tr, th, td { display: revert !important; }
       .container { padding: 0 !important; }
-      .report-section.printing { display: block !important; border: none !important; padding: 0 !important; margin: 0 !important; background: white !important; }
+      .report-section.printing { border: none !important; padding: 0 !important; margin: 0 !important; background: white !important; }
       .print-header { display: block !important; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
       .print-header h2 { font-size: 15pt; color: #000; margin-bottom: 4px; }
       .print-header p  { font-size: 8.5pt; color: #444; }
@@ -479,15 +484,21 @@ function printReport(type) {
   document.getElementById(isD ? 'dustPrintFooter' : 'smokePrintFooter').textContent =
     'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
 
-  // ทำให้ tab-report แสดงก่อน (จำเป็นสำหรับ print)
-  document.getElementById('tab-report').style.display = 'block';
+  // บังคับให้ tab-report และ section แสดงก่อน แล้วค่อย print
+  document.getElementById('tab-report').style.cssText = 'display:block!important';
   section.classList.add('printing');
 
-  window.print();
-
-  // คืนค่าหลัง dialog ปิด
-  section.classList.remove('printing');
-  document.getElementById('tab-report').style.display = '';
+  // รอ browser re-render ก่อนสั่งพิมพ์
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      setTimeout(function() {
+        window.print();
+        // คืนค่าหลัง dialog ปิด
+        section.classList.remove('printing');
+        document.getElementById('tab-report').style.cssText = '';
+      }, 200);
+    });
+  });
 }
 
 loadData();
