@@ -90,32 +90,26 @@
 
     /* ===== PRINT STYLES ===== */
     @media print {
-      @page { size: A4 portrait; margin: 12mm 14mm; }
-      body { background: white !important; color: black !important; font-family: 'Segoe UI', Tahoma, sans-serif; }
+      @page { size: A4 portrait; margin: 14mm; }
+      body { background: white !important; color: #000 !important; font-family: Tahoma, sans-serif; }
+      /* ซ่อนทุกอย่าง */
       .header, .tabs, .status-bar, .charts, .section-header,
-      #tab-dashboard, .btn, .report-controls, #dustTable, #smokeTable { display: none !important; }
+      #tab-dashboard, .btn, .report-controls,
+      #dustTable, #smokeTable, .tab-content { display: none !important; }
+      /* แสดงเฉพาะ section ที่เลือก */
       .container { padding: 0 !important; }
-      .tab-content { display: block !important; }
-      .report-section { border: none !important; padding: 0 !important; margin: 0 !important; background: white !important; }
-      .print-header { display: block !important; margin-bottom: 12px; border-bottom: 2px solid #000; padding-bottom: 8px; }
+      .report-section.printing { display: block !important; border: none !important; padding: 0 !important; margin: 0 !important; background: white !important; }
+      .print-header { display: block !important; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
       .print-header h2 { font-size: 15pt; color: #000; margin-bottom: 4px; }
-      .print-header p  { font-size: 9pt; color: #444; }
+      .print-header p  { font-size: 8.5pt; color: #444; }
       .table-wrap { border: none !important; }
       table { width: 100%; border-collapse: collapse; background: white !important; }
-      th {
-        background: #000 !important; color: #fff !important;
-        padding: 8px 10px; font-size: 10pt; text-align: center !important;
-        border: 1px solid #000;
-      }
-      td {
-        padding: 7px 10px; font-size: 9.5pt; color: #000 !important;
-        border: 1px solid #999; background: white !important; text-align: center;
-      }
+      th { background: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+           padding: 8px 10px; font-size: 10pt; text-align: center !important; border: 1px solid #000; }
+      td { padding: 7px 10px; font-size: 9.5pt; color: #000 !important; border: 1px solid #999; background: white !important; text-align: center; }
       td:first-child { text-align: left !important; font-weight: bold; }
-      tr:nth-child(even) td { background: #f0f0f0 !important; }
-      .print-footer { display: block !important; margin-top: 10px; font-size: 8pt; color: #555; text-align: right; }
-      /* ซ่อน report section ที่ไม่ได้พิมพ์ */
-      .report-section.hide-print { display: none !important; }
+      tr:nth-child(even) td { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-footer { display: block !important; margin-top: 10px; font-size: 8pt; color: #555; text-align: right; border-top: 1px solid #ccc; padding-top: 6px; }
     }
     .print-header { display: none; }
     .print-footer { display: none; }
@@ -465,7 +459,7 @@ function buildSmokePeriodTable() {
   });
 }
 
-// ===== PRINT TO PDF — Blob URL (รองรับมือถือ Android ทุก browser) =====
+// ===== PRINT — window.print() ในหน้าเดิม ซ่อนทุกอย่างยกเว้น section ที่เลือก =====
 function printReport(type) {
   const isD  = type === 'dust';
   const month = document.getElementById(isD ? 'dustMonth' : 'smokeMonth').value;
@@ -473,52 +467,27 @@ function printReport(type) {
 
   if (isD) buildDustPeriodTable(); else buildSmokePeriodTable();
 
-  const label     = isD ? 'รายงานฝุ่น PM2.5' : 'รายงานควัน MQ-2';
-  const title     = label + ' เดือน ' + toThaiMonth(month);
-  const sub       = 'ออกรายงานเมื่อ: ' + new Date().toLocaleString('th-TH') + '  |  ระบบตรวจวัดคุณภาพอากาศ WeMos D1';
-  const foot      = 'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
-  const tableHTML = document.getElementById(isD ? 'dustReportTable' : 'smokeReportTable').outerHTML;
+  const label  = isD ? 'รายงานฝุ่น PM2.5' : 'รายงานควัน MQ-2';
+  const sectionId = isD ? 'dustReportSection' : 'smokeReportSection';
+  const section   = document.getElementById(sectionId);
 
-  const html =
-    '<!DOCTYPE html><html lang="th"><head>' +
-    '<meta charset="UTF-8">' +
-    '<meta name="viewport" content="width=device-width,initial-scale=1.0">' +
-    '<title>' + title + '</title>' +
-    '<style>' +
-    '@page{size:A4 portrait;margin:14mm}' +
-    '*{margin:0;padding:0;box-sizing:border-box}' +
-    'body{font-family:Tahoma,Arial,sans-serif;background:#fff;color:#000;padding:0}' +
-    '.hd{border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:16px}' +
-    '.hd h2{font-size:16pt;font-weight:bold;margin-bottom:5px}' +
-    '.hd p{font-size:9pt;color:#444}' +
-    'table{width:100%;border-collapse:collapse;margin-top:4px}' +
-    'th{background:#222;color:#fff;padding:8px 10px;font-size:10pt;text-align:center;border:1px solid #000}' +
-    'td{padding:7px 10px;font-size:9.5pt;color:#000;border:1px solid #aaa;text-align:center;background:#fff}' +
-    'td:first-child{text-align:left;font-weight:bold}' +
-    'tr:nth-child(even) td{background:#f2f2f2}' +
-    '.ft{margin-top:12px;font-size:8pt;color:#666;text-align:right;border-top:1px solid #ccc;padding-top:6px}' +
-    '@media print{' +
-    'body{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-    'th{background:#222!important;color:#fff!important}' +
-    'tr:nth-child(even) td{background:#f2f2f2!important}' +
-    '}' +
-    '</style></head><body>' +
-    '<div class="hd"><h2>' + title + '</h2><p>' + sub + '</p></div>' +
-    tableHTML +
-    '<div class="ft">' + foot + '</div>' +
-    '</body></html>';
+  // ใส่ข้อมูลหัว/footer
+  document.getElementById(isD ? 'dustPrintTitle' : 'smokePrintTitle').textContent =
+    label + ' เดือน ' + toThaiMonth(month);
+  document.getElementById(isD ? 'dustPrintSub' : 'smokePrintSub').textContent =
+    'ออกรายงานเมื่อ: ' + new Date().toLocaleString('th-TH') + '  |  ระบบตรวจวัดคุณภาพอากาศ WeMos D1';
+  document.getElementById(isD ? 'dustPrintFooter' : 'smokePrintFooter').textContent =
+    'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
 
-  // สร้าง Blob แล้วเปิด tab ใหม่ — รองรับ Android Chrome/Samsung Browser
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.target   = '_blank';
-  a.rel      = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 10000);
+  // ทำให้ tab-report แสดงก่อน (จำเป็นสำหรับ print)
+  document.getElementById('tab-report').style.display = 'block';
+  section.classList.add('printing');
+
+  window.print();
+
+  // คืนค่าหลัง dialog ปิด
+  section.classList.remove('printing');
+  document.getElementById('tab-report').style.display = '';
 }
 
 loadData();
