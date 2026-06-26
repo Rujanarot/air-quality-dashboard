@@ -465,32 +465,50 @@ function buildSmokePeriodTable() {
   });
 }
 
-// ===== PRINT TO PDF (ใช้ browser print — รองรับภาษาไทย 100%) =====
+// ===== PRINT TO PDF — เปิด popup เฉพาะ content ที่ต้องการ (รองรับมือถือ) =====
 function printReport(type) {
-  const isD = type === 'dust';
-  const month = document.getElementById(isD?'dustMonth':'smokeMonth').value;
+  const isD  = type === 'dust';
+  const month = document.getElementById(isD ? 'dustMonth' : 'smokeMonth').value;
   if (!month) { alert('กรุณาเลือกเดือนก่อน'); return; }
 
-  // สร้างข้อมูลในตารางก่อน
   if (isD) buildDustPeriodTable(); else buildSmokePeriodTable();
 
-  // อัปเดตหัวพิมพ์
-  const label = isD ? 'รายงานฝุ่น PM2.5' : 'รายงานควัน MQ-2';
-  const titleEl = document.getElementById(isD?'dustPrintTitle':'smokePrintTitle');
-  const subEl   = document.getElementById(isD?'dustPrintSub':'smokePrintSub');
-  const footEl  = document.getElementById(isD?'dustPrintFooter':'smokePrintFooter');
-  titleEl.textContent = `${label} เดือน ${toThaiMonth(month)}`;
-  subEl.textContent   = `ออกรายงานเมื่อ: ${new Date().toLocaleString('th-TH')}  |  ระบบตรวจวัดคุณภาพอากาศ WeMos D1`;
-  footEl.textContent  = 'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
+  const label    = isD ? 'รายงานฝุ่น PM2.5' : 'รายงานควัน MQ-2';
+  const title    = label + ' เดือน ' + toThaiMonth(month);
+  const sub      = 'ออกรายงานเมื่อ: ' + new Date().toLocaleString('th-TH') + '  |  ระบบตรวจวัดคุณภาพอากาศ WeMos D1';
+  const foot     = 'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
+  const tableHTML = document.getElementById(isD ? 'dustReportTable' : 'smokeReportTable').outerHTML;
 
-  // ซ่อน section ที่ไม่ได้พิมพ์
-  const otherSection = document.getElementById(isD?'smokeReportSection':'dustReportSection');
-  otherSection.classList.add('hide-print');
+  const html = '<!DOCTYPE html>' +
+    '<html lang="th"><head>' +
+    '<meta charset="UTF-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+    '<title>' + title + '</title>' +
+    '<style>' +
+    '@page { size: A4 portrait; margin: 14mm 14mm 12mm; }' +
+    '* { margin:0; padding:0; box-sizing:border-box; }' +
+    'body { font-family: Segoe UI, Tahoma, sans-serif; background:white; color:#000; font-size:11pt; }' +
+    '.hd { border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:14px; }' +
+    '.hd h2 { font-size:15pt; font-weight:bold; margin-bottom:4px; }' +
+    '.hd p  { font-size:8.5pt; color:#444; }' +
+    'table  { width:100%; border-collapse:collapse; }' +
+    'th { background:#000; color:#fff; padding:8px 10px; font-size:10pt; text-align:center; border:1px solid #000; }' +
+    'td { padding:7px 10px; font-size:9.5pt; color:#000; border:1px solid #888; text-align:center; background:white; }' +
+    'td:first-child { text-align:left; font-weight:bold; }' +
+    'tr:nth-child(even) td { background:#f0f0f0; }' +
+    '.ft { margin-top:10px; font-size:8pt; color:#555; text-align:right; }' +
+    '@media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }' +
+    '</style></head><body>' +
+    '<div class="hd"><h2>' + title + '</h2><p>' + sub + '</p></div>' +
+    tableHTML +
+    '<div class="ft">' + foot + '</div>' +
+    '<script>window.onload=function(){ window.print(); window.onafterprint=function(){ window.close(); }; };<\/script>' +
+    '</body></html>';
 
-  window.print();
-
-  // คืนค่าหลัง print dialog ปิด
-  otherSection.classList.remove('hide-print');
+  const w = window.open('', '_blank', 'width=800,height=600');
+  if (!w) { alert('กรุณาอนุญาต Pop-up สำหรับเว็บนี้ก่อนครับ'); return; }
+  w.document.write(html);
+  w.document.close();
 }
 
 loadData();
