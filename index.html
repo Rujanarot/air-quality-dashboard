@@ -104,17 +104,21 @@
       table, thead, tbody, tr, th, td { display: revert !important; }
       .container { padding: 0 !important; }
       .report-section.printing { border: none !important; padding: 0 !important; margin: 0 !important; background: white !important; }
+      .report-controls, select, button, .btn, .btn-group { display: none !important; }
       .print-header { display: block !important; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
       .print-header h2 { font-size: 15pt; color: #000; margin-bottom: 4px; }
       .print-header p  { font-size: 8.5pt; color: #444; }
-      .table-wrap { border: none !important; }
-      table { width: 100%; border-collapse: collapse; background: white !important; }
+      .table-wrap { border: none !important; overflow: visible !important; max-width: 100% !important; }
+      table { width: 100% !important; max-width: 100% !important; border-collapse: collapse; background: white !important; table-layout: fixed; }
       th { background: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
-           padding: 8px 10px; font-size: 10pt; text-align: center !important; border: 1px solid #000; }
-      td { padding: 7px 10px; font-size: 9.5pt; color: #000 !important; border: 1px solid #999; background: white !important; text-align: center; }
+           padding: 5px 3px; font-size: 7.5pt; text-align: center !important; border: 1px solid #000;
+           word-break: break-word; white-space: normal; overflow: hidden; }
+      td { padding: 5px 3px; font-size: 7.5pt; color: #000 !important; border: 1px solid #999;
+           background: white !important; text-align: center; word-break: break-word; white-space: normal; overflow: hidden; }
       td:first-child { text-align: left !important; font-weight: bold; }
       tr:nth-child(even) td { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .print-footer { display: block !important; margin-top: 10px; font-size: 8pt; color: #555; text-align: right; border-top: 1px solid #ccc; padding-top: 6px; }
+      .print-footer { display: block !important; margin-top: 10px; font-size: 7pt; color: #555; text-align: right; border-top: 1px solid #ccc; padding-top: 6px; }
+      .table-wrap { overflow: visible !important; }
     }
     .print-header { display: none; }
     .print-footer { display: none; }
