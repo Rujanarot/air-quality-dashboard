@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบตรวจจับฝุ่น PM2.5 และควัน</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
 
     /* ===== EMBEDDED SARABUN FONT (Thai + Latin) ===== */
@@ -256,7 +255,7 @@
       <div class="report-controls">
         <select id="dustMonth"><option value="">-- เลือกเดือน --</option></select>
         <div class="btn-group">
-          <button class="btn btn-blue" onclick="printReport('dust', event)">⬇️ ดาวน์โหลด PDF ฝุ่น PM2.5</button>
+          <button class="btn btn-blue" onclick="printReport('dust')">⬇️ ดาวน์โหลด PDF ฝุ่น PM2.5</button>
         </div>
       </div>
       <!-- หัวสำหรับพิมพ์ -->
@@ -288,7 +287,7 @@
       <div class="report-controls">
         <select id="smokeMonth"><option value="">-- เลือกเดือน --</option></select>
         <div class="btn-group">
-          <button class="btn btn-orange" onclick="printReport('smoke', event)">⬇️ ดาวน์โหลด PDF ควัน MQ-2</button>
+          <button class="btn btn-orange" onclick="printReport('smoke')">⬇️ ดาวน์โหลด PDF ควัน MQ-2</button>
         </div>
       </div>
       <div class="print-header" id="smokePrintHeader">
@@ -499,10 +498,8 @@ function buildSmokePeriodTable() {
   });
 }
 
-// ===== ดาวน์โหลด PDF — ใช้ html2pdf.js สร้างไฟล์ PDF จริงแล้วดาวน์โหลดตรง =====
-// (เชื่อถือได้บนมือถือมากกว่า window.print() ซึ่งบนมือถือหลายรุ่น/เบราว์เซอร์ในแอป
-//  เช่น LINE, Facebook ไม่รองรับ หรือไม่มีตัวเลือก "บันทึกเป็น PDF" ให้)
-function printReport(type, evt) {
+// ===== PRINT — window.print() พร้อม Sarabun font ฝังใน HTML (ทุก platform) =====
+function printReport(type) {
   const isD  = type === 'dust';
   const month = document.getElementById(isD ? 'dustMonth' : 'smokeMonth').value;
   if (!month) { alert('กรุณาเลือกเดือนก่อน'); return; }
@@ -512,84 +509,25 @@ function printReport(type, evt) {
   const label = isD ? 'รายงานฝุ่น PM2.5' : 'รายงานควัน MQ-2';
   const sectionId = isD ? 'dustReportSection' : 'smokeReportSection';
   const section   = document.getElementById(sectionId);
-  const btn = evt ? evt.target : null;
 
-  const title = label + ' เดือน ' + toThaiMonth(month);
-  const sub   = 'ออกรายงานเมื่อ: ' + new Date().toLocaleString('th-TH') + '  |  ระบบตรวจวัดคุณภาพอากาศ WeMos D1';
-  const foot  = 'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
+  document.getElementById(isD ? 'dustPrintTitle'  : 'smokePrintTitle').textContent =
+    label + ' เดือน ' + toThaiMonth(month);
+  document.getElementById(isD ? 'dustPrintSub'    : 'smokePrintSub').textContent =
+    'ออกรายงานเมื่อ: ' + new Date().toLocaleString('th-TH') + '  |  ระบบตรวจวัดคุณภาพอากาศ WeMos D1';
+  document.getElementById(isD ? 'dustPrintFooter' : 'smokePrintFooter').textContent =
+    'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
 
-  document.getElementById(isD ? 'dustPrintTitle'  : 'smokePrintTitle').textContent = title;
-  document.getElementById(isD ? 'dustPrintSub'    : 'smokePrintSub').textContent   = sub;
-  document.getElementById(isD ? 'dustPrintFooter' : 'smokePrintFooter').textContent = foot;
+  document.getElementById('tab-report').style.cssText = 'display:block!important';
+  section.classList.add('printing');
 
-  // สร้างสำเนา element ที่จะแปลงเป็น PDF (ไม่แตะ DOM จริงบนหน้าจอ)
-  const clone = section.cloneNode(true);
-  clone.classList.add('printing');
-  // ลบปุ่ม/คอนโทรลที่ไม่ต้องการให้ติดไปใน PDF
-  clone.querySelectorAll('.report-controls, select, button, .btn, .btn-group').forEach(el => el.remove());
-
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'background:#fff;color:#000;padding:14mm;width:210mm;box-sizing:border-box;';
-  wrapper.appendChild(clone);
-
-  // ปรับสไตล์ตารางให้เหมาะกับ PDF (สี, ขอบ, ฟอนต์)
-  wrapper.querySelectorAll('.print-header').forEach(el => {
-    el.style.cssText = 'display:block;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:14px;';
-  });
-  wrapper.querySelectorAll('.print-header h2').forEach(el => el.style.cssText = 'font-size:15pt;color:#000;margin-bottom:4px;');
-  wrapper.querySelectorAll('.print-header p').forEach(el => el.style.cssText = 'font-size:9pt;color:#444;');
-  wrapper.querySelectorAll('.table-wrap').forEach(el => el.style.cssText = 'border:none;overflow:visible;max-width:100%;');
-  wrapper.querySelectorAll('table').forEach(el => el.style.cssText = 'width:100%;max-width:100%;border-collapse:collapse;background:#fff;table-layout:fixed;');
-  wrapper.querySelectorAll('th').forEach(el => el.style.cssText = 'background:#111;color:#fff;padding:6px 4px;font-size:9pt;text-align:center;border:1px solid #000;word-break:break-word;');
-  wrapper.querySelectorAll('td').forEach(el => el.style.cssText = 'padding:6px 4px;font-size:9pt;color:#000;border:1px solid #999;background:#fff;text-align:center;word-break:break-word;');
-  wrapper.querySelectorAll('td:first-child').forEach(el => el.style.cssText += 'text-align:left;font-weight:bold;');
-  wrapper.querySelectorAll('.print-footer').forEach(el => {
-    el.style.cssText = 'display:block;margin-top:10px;font-size:8pt;color:#555;text-align:right;border-top:1px solid #ccc;padding-top:6px;';
-  });
-
-  // ต่อเข้า DOM ชั่วคราว: ต้องอยู่ "ในจอ" (ไม่ใช่นอกจอแบบ left:-9999px)
-  // เพราะเบราว์เซอร์มือถือหลายตัว (โดยเฉพาะ iOS Safari) จะจับภาพ element ที่อยู่นอกขอบเขตจอไม่ได้ ทำให้ได้ PDF หน้าขาว
-  wrapper.style.position = 'fixed';
-  wrapper.style.left = '0';
-  wrapper.style.top = '0';
-  wrapper.style.zIndex = '999998';
-  document.body.appendChild(wrapper);
-
-  // คลุมทับด้วย overlay สีขาว + ข้อความกำลังโหลด เพื่อไม่ให้ผู้ใช้เห็นภาพระหว่างสร้าง PDF
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:#0f172a;z-index:999999;' +
-    'display:flex;align-items:center;justify-content:center;color:#fff;font-size:1rem;font-family:Sarabun,Tahoma,sans-serif;';
-  overlay.textContent = '⏳ กำลังสร้าง PDF กรุณารอสักครู่...';
-  document.body.appendChild(overlay);
-  document.body.style.overflow = 'hidden';
-
-  const fileName = (isD ? 'PM25_report_' : 'Smoke_report_') + month.replace('/', '-') + '.pdf';
-  const originalBtnText = btn ? btn.textContent : null;
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ กำลังสร้าง PDF...'; }
-
-  function cleanup() {
-    document.body.removeChild(wrapper);
-    document.body.removeChild(overlay);
-    document.body.style.overflow = '';
-    if (btn) { btn.disabled = false; btn.textContent = originalBtnText; }
-  }
-
-  // รอให้ฟอนต์โหลดเสร็จก่อน ป้องกันปัญหาจับภาพก่อนฟอนต์พร้อม
-  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(function() {
-    return html2pdf().set({
-      margin: 0,
-      filename: fileName,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: wrapper.scrollWidth },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'] }
-    }).from(wrapper).save();
-  }).then(function() {
-    cleanup();
-  }).catch(function(err) {
-    console.error(err);
-    cleanup();
-    alert('เกิดข้อผิดพลาดในการสร้าง PDF กรุณาลองใหม่อีกครั้ง');
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      setTimeout(function() {
+        window.print();
+        section.classList.remove('printing');
+        document.getElementById('tab-report').style.cssText = '';
+      }, 300);
+    });
   });
 }
 
