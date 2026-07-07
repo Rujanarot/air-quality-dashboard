@@ -118,73 +118,31 @@
       color: var(--text); padding: 8px 12px; border-radius: 8px; font-size: 0.85rem;
     }
 
-    /* ===== PRINT STYLES =====
-       หมายเหตุ: เดิมใช้ "display: revert" เพื่อดึงส่วนที่ต้องการกลับมาแสดง
-       แต่ revert ไม่รองรับเหมือนกันทุกเบราว์เซอร์/เว็บวิว (โดยเฉพาะตอน "บันทึกเป็น PDF"
-       บนมือถือบางรุ่น) ทำให้พิมพ์ออกมาเป็นหน้าว่าง จึงเปลี่ยนมาระบุค่า display แบบตรงๆ
-       ทุกจุด และ scope .print-header/.print-footer ไว้ใต้ .printing เท่านั้น
-       เพื่อกันไม่ให้หัวรายงานโผล่มาโดยไม่มีตารางข้อมูล */
+    /* ===== PRINT STYLES (ปรับให้เหมือน index2: ซ่อนด้วย class แทนการ reset ทั้งหน้า) ===== */
     @media print {
       @page { size: A4 portrait; margin: 14mm; }
       body { background: white !important; color: #000 !important; font-family: 'Sarabun', Tahoma, sans-serif; }
-
-      /* ซ่อนทุกอย่างก่อนเป็นค่าเริ่มต้น */
-      * { display: none !important; }
-
-      /* โครงหลักที่ต้องมีเพื่อให้ผังหน้าเรนเดอร์ได้ */
-      html, body { display: block !important; }
-      .container { display: block !important; padding: 0 !important; }
-      #tab-report { display: block !important; }
-
-      /* แสดงเฉพาะ section ที่กำลังพิมพ์ (มีคลาส .printing) */
-      .report-section.printing {
-        display: block !important; border: none !important;
-        padding: 0 !important; margin: 0 !important; background: white !important;
-      }
-
-      /* หัวรายงาน — แสดงเฉพาะภายใน section ที่กำลังพิมพ์เท่านั้น */
-      .report-section.printing .print-header {
-        display: block !important; border-bottom: 2px solid #000;
-        padding-bottom: 8px; margin-bottom: 14px;
-      }
-      .report-section.printing .print-header h2 { display: block !important; font-size: 15pt; color: #000; margin-bottom: 4px; }
-      .report-section.printing .print-header p  { display: block !important; font-size: 8.5pt; color: #444; }
-
-      /* ตาราง — ระบุ display ของแต่ละ element ให้ตรงกับ role จริงของตาราง
-         (แทนที่จะพึ่ง revert) เพื่อให้เรนเดอร์ถูกต้องทุกเบราว์เซอร์ */
-      .report-section.printing .table-wrap {
-        display: block !important; border: none !important;
-        overflow: visible !important; max-width: 100% !important;
-      }
-      .report-section.printing table {
-        display: table !important; width: 100% !important; max-width: 100% !important;
-        border-collapse: collapse; background: white !important; table-layout: fixed;
-      }
-      .report-section.printing thead { display: table-header-group !important; }
-      .report-section.printing tbody { display: table-row-group !important; }
-      .report-section.printing tr    { display: table-row !important; }
-      .report-section.printing th {
-        display: table-cell !important;
-        background: #000 !important; color: #fff !important;
-        -webkit-print-color-adjust: exact; print-color-adjust: exact;
-        padding: 5px 3px; font-size: 7.5pt; text-align: center !important; border: 1px solid #000;
-        word-break: break-word; white-space: normal; overflow: hidden;
-      }
-      .report-section.printing td {
-        display: table-cell !important;
-        padding: 5px 3px; font-size: 7.5pt; color: #000 !important; border: 1px solid #999;
-        background: white !important; text-align: center; word-break: break-word; white-space: normal; overflow: hidden;
-      }
-      .report-section.printing td:first-child { text-align: left !important; font-weight: bold; }
-      .report-section.printing tr:nth-child(even) td {
-        background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
-      }
-
-      /* ท้ายรายงาน — scope เหมือนกัน */
-      .report-section.printing .print-footer {
-        display: block !important; margin-top: 10px; font-size: 7pt; color: #555;
-        text-align: right; border-top: 1px solid #ccc; padding-top: 6px;
-      }
+      /* ซ่อนส่วนที่ไม่ต้องพิมพ์ */
+      .no-print, .header, .tabs, #statusBar,
+      .report-controls, select, button, .btn, .btn-group,
+      #tab-dashboard { display: none !important; }
+      /* แสดงเฉพาะรายงานที่กำลังพิมพ์ (dust หรือ smoke) */
+      .report-section:not(.printing) { display: none !important; }
+      .container { padding: 0 !important; }
+      .report-section.printing { border: none !important; padding: 0 !important; margin: 0 !important; background: white !important; }
+      .print-header { display: block !important; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
+      .print-header h2 { font-size: 15pt; color: #000; margin-bottom: 4px; }
+      .print-header p  { font-size: 8.5pt; color: #444; }
+      .table-wrap { border: none !important; overflow: visible !important; max-width: 100% !important; }
+      table { width: 100% !important; max-width: 100% !important; border-collapse: collapse; background: white !important; table-layout: fixed; }
+      th { background: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+           padding: 5px 3px; font-size: 7.5pt; text-align: center !important; border: 1px solid #000;
+           word-break: break-word; white-space: normal; overflow: hidden; }
+      td { padding: 5px 3px; font-size: 7.5pt; color: #000 !important; border: 1px solid #999;
+           background: white !important; text-align: center; word-break: break-word; white-space: normal; overflow: hidden; }
+      td:first-child { text-align: left !important; font-weight: bold; }
+      tr:nth-child(even) td { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-footer { display: block !important; margin-top: 10px; font-size: 7pt; color: #555; text-align: right; border-top: 1px solid #ccc; padding-top: 6px; }
     }
     .print-header { display: none; }
     .print-footer { display: none; }
@@ -535,14 +493,6 @@ function buildSmokePeriodTable() {
 }
 
 // ===== PRINT — window.print() พร้อม Sarabun font ฝังใน HTML (ทุก platform) =====
-// หมายเหตุ: เดิมใช้ setTimeout(...,300) แล้วเรียก window.print() จากนั้นลบคลาส .printing
-// ทันทีหลังบรรทัดนั้น โดยสมมติว่า window.print() จะบล็อกจนกว่าผู้ใช้จะปิดหน้าต่างพิมพ์
-// (จริงในบางเบราว์เซอร์ เช่น Chrome desktop แต่ "ไม่จริง" ใน Firefox/เบราว์เซอร์มือถือ
-// หลายตัว) ทำให้คลาส .printing ถูกลบออกไปก่อนที่เบราว์เซอร์จะเรนเดอร์หน้าพิมพ์เสร็จจริง
-// ผลคือได้หน้ากระดาษว่าง/ไม่มีข้อมูลในตาราง จึงเปลี่ยนมาใช้ beforeprint/afterprint event
-// ซึ่งเบราว์เซอร์ทุกตัวจะยิงตรงกับช่วงเวลาที่พิมพ์จริงเสมอ ไม่ต้องเดาเวลา
-let printingSectionId = null;
-
 function printReport(type) {
   const isD  = type === 'dust';
   const month = document.getElementById(isD ? 'dustMonth' : 'smokeMonth').value;
@@ -552,6 +502,7 @@ function printReport(type) {
 
   const label = isD ? 'รายงานฝุ่น PM2.5' : 'รายงานควัน MQ-2';
   const sectionId = isD ? 'dustReportSection' : 'smokeReportSection';
+  const section   = document.getElementById(sectionId);
 
   document.getElementById(isD ? 'dustPrintTitle'  : 'smokePrintTitle').textContent =
     label + ' เดือน ' + toThaiMonth(month);
@@ -560,25 +511,16 @@ function printReport(type) {
   document.getElementById(isD ? 'dustPrintFooter' : 'smokePrintFooter').textContent =
     'ข้อมูลจาก PMS7003 (ฝุ่น PM2.5) + MQ-2 (ควัน)';
 
-  printingSectionId = sectionId;
-  document.getElementById(sectionId).classList.add('printing');
-  document.getElementById('tab-report').style.cssText = 'display:block!important';
+  section.classList.add('printing');
 
-  // รอให้ browser วาดตาราง/หัวรายงานใหม่เสร็จก่อนค่อยเปิดหน้าต่างพิมพ์
-  requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+  function cleanup() {
+    section.classList.remove('printing');
+    window.removeEventListener('afterprint', cleanup);
+  }
+  window.addEventListener('afterprint', cleanup);
+
+  window.print();
 }
-
-function clearPrintingState() {
-  if (!printingSectionId) return;
-  const section = document.getElementById(printingSectionId);
-  if (section) section.classList.remove('printing');
-  document.getElementById('tab-report').style.cssText = '';
-  printingSectionId = null;
-}
-
-// afterprint ยิงแน่นอนทั้งตอนกด "พิมพ์"/"บันทึกเป็น PDF" และตอนกด "ยกเลิก"
-// ในทุกเบราว์เซอร์หลัก จึงใช้ล้างสถานะแทนการเดาเวลาด้วย setTimeout
-window.addEventListener('afterprint', clearPrintingState);
 
 loadData();
 setInterval(loadData, 60000);
