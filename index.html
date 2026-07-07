@@ -438,12 +438,13 @@ function toThaiMonth(m) {
 function buildMonthOptions() {
   const dm = [...new Set(allDustRows.map(r  => r[0]?r[0].substring(3):'')).values()].filter(Boolean).sort();
   const sm = [...new Set(allSmokeRows.map(r => r[0]?r[0].substring(3):'')).values()].filter(Boolean).sort();
-  const ds = document.getElementById('dustMonth'),  cd = ds.value;
-  const ss = document.getElementById('smokeMonth'), cs = ss.value;
+  const ds = document.getElementById('dustMonth'),  cd = ds.value || dm[dm.length-1] || '';
+  const ss = document.getElementById('smokeMonth'), cs = ss.value || sm[sm.length-1] || '';
   ds.innerHTML = '<option value="">-- เลือกเดือน --</option>';
   ss.innerHTML = '<option value="">-- เลือกเดือน --</option>';
   dm.forEach(m => ds.innerHTML += `<option value="${m}" ${m===cd?'selected':''}>${toThaiMonth(m)}</option>`);
   sm.forEach(m => ss.innerHTML += `<option value="${m}" ${m===cs?'selected':''}>${toThaiMonth(m)}</option>`);
+  ds.value = cd; ss.value = cs;
   ds.onchange = buildDustPeriodTable;
   ss.onchange = buildSmokePeriodTable;
   if (cd) buildDustPeriodTable();
